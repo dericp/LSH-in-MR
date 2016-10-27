@@ -1,11 +1,14 @@
 import numpy as np
 
+r = 300
+b = 20
 num_documents = 700
-num_hash_functions = 1000
+num_hash_functions = b * r
 num_sig_matrix_rows = num_hash_functions
-num_bands = 20
+num_bands = b
+# 50 rows in each band
 
-def generate_hash_function(p=701):
+def generate_hash_function(p=23081):
     a = np.random.randint(1, np.iinfo(np.int64).max)
     b = np.random.randint(np.iinfo(np.int64).max)
 
@@ -15,7 +18,7 @@ def generate_hash_function(p=701):
     return hash_function
 
 
-def hash_row(hash_function, row_numbers):
+def min_hash_row(hash_function, row_numbers):
     min_hash = np.iinfo(np.int64).max
     for row in row_numbers:
         hash = hash_function(row)
@@ -48,7 +51,7 @@ def mapper(key, value):
 
     # generating signature matrix column for this document
     for curr_hash_function in sig_matrix_hash_functions:
-        sig_col.append(hash_row(curr_hash_function, row_numbers))
+        sig_col.append(min_hash_row(curr_hash_function, row_numbers))
 
     rows_per_band = num_hash_functions / num_bands
 
@@ -57,13 +60,11 @@ def mapper(key, value):
         current_sum = 0
         current_strip = list()
 
-        # build up this strip in this band
         for r in range(band_number * rows_per_band, (band_number + 1) * rows_per_band):
-            current_strip.append(int(sig_col[r]))
+            current_sum += band_hash_functions[band_number * rows_per_band + r](int(sig_col[r]))
 
-        # we now have the current strip
-        current_sum += hash_row(band_hash_functions[band_number * rows_per_band + r], current_strip)
-        yield(hash(int(current_sum) * band_number), doc_id)
+        #current_sum += min_hash_row(band_hash_functions[band_number * rows_per_band + r], current_strip)
+        yield(hash(int(current_sum % num_documents) * band_number), doc_id)
 
 
 def reducer(key, values):
@@ -71,5 +72,5 @@ def reducer(key, values):
     # values: list of all value for that key
     for i in range(0, len(values)):
         for j in range(i + 1, len(values)):
-            yield(values[i], values[j])
+            yield(int(values[i][6:]), int(values[j][6:]))
 
