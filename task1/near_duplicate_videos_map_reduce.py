@@ -54,15 +54,31 @@ def mapper(key, value):
     for band in range(0, b):
         current_sum = 0
         for row in range(0, r):
-            current_row_index = r * band + row
-            current_sum += band_hash_functions[current_row_index](sig_col[current_row_index])
+            current_row = r * band + row
+            current_sum += band_hash_functions[current_row](sig_col[current_row])
+            #print 'current sum is ' + current_sum
 
-        yield(int((current_sum % num_documents) * band), doc_id)
+        yield(str(current_sum) + '_band' + str(band), doc_id)
 
 
 def reducer(key, values):
     # key: key from mapper used to aggregate
     # values: list of all value for that key
-    for i in range(0, len(values)):
-        for j in range(i + 1, len(values)):
-            yield(int(values[i][6:]), int(values[j][6:]))
+    print 'key ' + str(key)
+    print 'values ' + str(values)
+    '''
+    if len(values) > 1:
+        for i in range(0, len(values)):
+            for j in range(i + 1, len(values)):
+                yield(int(values[i][6:]), int(values[j][6:]))
+    '''
+
+    if len(values) > 1:
+        print len(values)
+        if int(values[0][6:]) < int(values[1][6:]):
+            yield(int(values[0][6:]), int(values[1][6:]))
+        else:
+            yield(int(values[1][6:]), int(values[0][6:]))
+
+
+
