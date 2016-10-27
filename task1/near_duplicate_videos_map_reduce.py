@@ -1,10 +1,11 @@
 import numpy as np
 
 num_documents = 700
-num_hash_functions = 100
+num_hash_functions = 1000
+num_sig_matrix_rows = num_hash_functions
 num_bands = 20
 
-def generate_hash_function(p=1507):
+def generate_hash_function(p=701):
     a = np.random.randint(1, np.iinfo(np.int64).max)
     b = np.random.randint(np.iinfo(np.int64).max)
 
@@ -24,17 +25,17 @@ def hash_row(hash_function, row_numbers):
     return min_hash
 
 
-hash_function_list_1 = list()
-hash_function_list_2 = list()
+sig_matrix_hash_functions = list()
+band_hash_functions = list()
 
 for i in range(0, num_hash_functions):
-    hash_function_list_1.append(generate_hash_function())
+    sig_matrix_hash_functions.append(generate_hash_function())
 
-for i in range(0, num_bands):
-    hash_function_list_2.append(generate_hash_function())
+for i in range(0, num_bands * num_sig_matrix_rows):
+    band_hash_functions.append(generate_hash_function())
 
-hash_function_list_1 = np.asarray(hash_function_list_1)
-hash_function_list_2 = np.asarray(hash_function_list_2)
+sig_matrix_hash_functions = np.asarray(sig_matrix_hash_functions)
+band_hash_functions = np.asarray(band_hash_functions)
 
 
 def mapper(key, value):
@@ -46,7 +47,7 @@ def mapper(key, value):
     sig_col = list()
 
     # generating signature matrix column for this document
-    for curr_hash_function in hash_function_list_1:
+    for curr_hash_function in sig_matrix_hash_functions:
         sig_col.append(hash_row(curr_hash_function, row_numbers))
 
     rows_per_band = num_hash_functions / num_bands
@@ -61,11 +62,14 @@ def mapper(key, value):
             current_strip.append(int(sig_col[r]))
 
         # we now have the current strip
-        current_sum += hash_row(hash_function_list_2[band_number], current_strip)
-        yield('band' + str(band_number) + ' hash' + str(current_sum), 'doc ' + doc_id)
+        current_sum += hash_row(band_hash_functions[band_number * rows_per_band + r], current_strip)
+        yield(hash(int(current_sum) * band_number), doc_id)
 
 
 def reducer(key, values):
     # key: key from mapper used to aggregate
     # values: list of all value for that key
-    yield(key, tuple(values))
+    for i in range(0, len(values)):
+        for j in range(i + 1, len(values)):
+            yield(values[i], values[j])
+
