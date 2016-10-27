@@ -13,17 +13,17 @@ def mapper(key, value):
         sig_col.append(hash_row(curr_hash_function, rows))
 
     rows_per_band = num_hash_functions / num_bands
-    for i in range(0, num_bands):
+    for band in range(0, num_bands):
         current_sum = 0
         current_strip = list()
-        for j in range(i * rows_per_band, (i + 1) * rows_per_band):
-            print 'j is ' + str(j)
+        for j in range(band * rows_per_band, (band + 1) * rows_per_band):
+            #print 'j is ' + str(j)
             current_strip.append(int(sig_col[j]))
 
         # we now have the current strip
-        print 'current strip ' + str(current_strip)
-        current_sum += hash_row(hash_function_list_2[i], current_strip)
-        yield(hash(i + current_sum % num_documents), 'document ' + str(i))
+        #print 'current strip ' + str(current_strip)
+        current_sum += hash_row(hash_function_list_2[band], current_strip)
+        yield('band' + str(band) + ' hash' +  str(current_sum % num_documents), 'document ' + id)
 
 
 
@@ -35,14 +35,14 @@ def reducer(key, values):
     yield(key, tuple(values))
 
 
-def generate_hash_function(p=113):
+def generate_hash_function(p=1507):
     a = np.random.randint(1, np.iinfo(np.int64).max)
     b = np.random.randint(np.iinfo(np.int64).max)
-    print 'a is ' + str(a)
-    print 'b is ' + str(b)
+    #print 'a is ' + str(a)
+    #print 'b is ' + str(b)
 
     def hash_function(row_number):
-        print 'row number is ' + str(row_number)
+        #print 'row number is ' + str(row_number)
         return (a * row_number + b) % p
 
     return hash_function
@@ -61,8 +61,8 @@ hash_function_list_1 = list()
 hash_function_list_2 = list()
 
 num_documents = 100
-num_hash_functions = 10
-num_bands = 5
+num_hash_functions = 100
+num_bands = 20
 
 for i in range(0, num_hash_functions):
     hash_function_list_1.append(generate_hash_function())
